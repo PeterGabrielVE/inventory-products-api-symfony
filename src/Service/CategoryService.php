@@ -14,6 +14,25 @@ class CategoryService
         $this->entityManager = $entityManager;
     }
 
+    public function getAllCategories(): array
+    {
+        $categories = $this->entityManager
+            ->getRepository(Category::class)
+            ->findAll();
+
+        $data = [];
+
+        foreach ($categories as $category) {
+            $data[] = [
+                'id' => $category->getId(),
+                'name' => $category->getName(),
+                'description' => $category->getDescription(),
+            ];
+        }
+
+        return $data;
+    }
+
     public function createCategory(string $name, string $description): Category
     {
         $category = new Category();
@@ -26,5 +45,44 @@ class CategoryService
         return $category;
     }
 
-    // Otros métodos para actualizar, eliminar y obtener categorías...
+    public function getCategoryById(int $id): Array
+    {
+        $category = $this->entityManager->getRepository(Category::class)->find($id);
+   
+        if (!$category) {
+   
+            return $this->json('No category found for id ' . $id, 404);
+        }
+   
+        $data =  [
+            'id' => $category->getId(),
+            'name' => $category->getName(),
+            'description' => $category->getDescription(),
+        ];
+
+        return $data;
+    }
+
+    public function updateCategory(Category $category, ?string $name, ?string $description): Category
+    {
+
+        if ($name !== null) {
+            $category->setName($name);
+        }
+
+        if ($description !== null) {
+            $category->setDescription($description);
+        }
+
+        $this->entityManager->flush();
+
+        return $category;
+    }
+
+    public function deleteCategory(Category $category): void
+    {
+        $this->entityManager->remove($category);
+        $this->entityManager->flush();
+    }
+
 }

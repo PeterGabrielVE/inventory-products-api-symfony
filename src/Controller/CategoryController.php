@@ -24,21 +24,9 @@ class CategoryController extends AbstractController
     #[Route('/categories', name: 'category_index', methods:['get'] )]
     public function index(ManagerRegistry $doctrine): JsonResponse
     {
-        $categories = $doctrine
-        ->getRepository(Category::class)
-        ->findAll();
+        $categories = $this->categoryService->getAllCategories();
 
-        $data = [];
-
-        foreach ($categories as $category) {
-        $data[] = [
-            'id' => $category->getId(),
-            'name' => $category->getName(),
-            'description' => $category->getDescription(),
-        ];
-        }
-
-        return $this->json($data);
+        return $this->json($categories);
     }
 
     #[Route('/categories', name: 'category_create', methods:['post'] )]
@@ -62,22 +50,17 @@ class CategoryController extends AbstractController
     }
 
     #[Route('/categories/{id}', name: 'category_show', methods:['get'] )]
-    public function show(ManagerRegistry $doctrine, int $id): JsonResponse
+    public function show(int $id): JsonResponse
     {
-        $category = $doctrine->getRepository(Category::class)->find($id);
-   
+
+        $category = $this->categoryService->getCategoryById($id);
+
         if (!$category) {
-   
             return $this->json('No category found for id ' . $id, 404);
         }
-   
-        $data =  [
-            'id' => $category->getId(),
-            'name' => $category->getName(),
-            'description' => $category->getDescription(),
-        ];
-           
-        return $this->json($data);
+
+        return $this->json($category);
+
     }
 
     #[Route('/categories/{id}', name: 'category_update', methods:['put', 'patch'] )]
@@ -85,44 +68,35 @@ class CategoryController extends AbstractController
     {
         $entityManager = $doctrine->getManager();
         $category = $entityManager->getRepository(Category::class)->find($id);
-   
+
         if (!$category) {
             return $this->json('No Category found for id' . $id, 404);
         }
 
         $name = $request->request->get('name');
-        if ($name !== null) {
-            $category->setName($name);
-        }
-
         $description = $request->request->get('description');
-        if ($description !== null) {
-            $category->setDescription($description);
-        }
 
-        $entityManager->flush();
-   
-        $data =  [
-            'id' => $category->getId(),
-            'name' => $category->getName(),
-            'description' => $category->getDescription(),
-        ];
-           
-        return $this->json($data);
+        $updatedCategory =  $this->categoryService->updateCategory($category, $name, $description);
+
+        return $this->json([
+            'id' => $updatedCategory->getId(),
+            'name' => $updatedCategory->getName(),
+            'description' => $updatedCategory->getDescription(),
+        ]);
     }
  
     #[Route('/categories/{id}', name: 'category_delete', methods:['delete'] )]
-    public function delete(ManagerRegistry $doctrine, int $id): JsonResponse
+    public function delete(ManagerRegistry $doctrine, CategoryService $categoryService, int $id): JsonResponse
     {
         $entityManager = $doctrine->getManager();
         $category = $entityManager->getRepository(Category::class)->find($id);
    
         if (!$category) {
-            return $this->json('No Category found for id' . $id, 404);
+            return $this->json('No Category found for id ' . $id, 404);
         }
    
-        $entityManager->remove($category);
-        $entityManager->flush();
+        // Llamar al servicio para eliminar la categoría
+        $categoryService->deleteCategory($category);
    
         return $this->json('Deleted a Category successfully with id ' . $id);
     }
