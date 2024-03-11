@@ -8,10 +8,19 @@ use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use App\Entity\Category;
+use App\Service\CategoryService;
 
 #[Route('/api', name: 'api_')]
 class CategoryController extends AbstractController
 {
+
+    private $categoryService;
+
+    public function __construct(CategoryService $categoryService)
+    {
+        $this->categoryService = $categoryService;
+    }
+
     #[Route('/categories', name: 'category_index', methods:['get'] )]
     public function index(ManagerRegistry $doctrine): JsonResponse
     {
@@ -39,18 +48,10 @@ class CategoryController extends AbstractController
    
         $category = new Category();
         $name = $request->request->get('name');
-        if ($name !== null) {
-            $category->setName($name);
-        }
-        
         $description = $request->request->get('description');
-        if ($description !== null) {
-            $category->setDescription($description);
-        }
 
-        $entityManager->persist($category);
-        $entityManager->flush();
-   
+        $category = $this->categoryService->createCategory($name, $description);
+
         $data =  [
             'id' => $category->getId(),
             'name' => $category->getName(),
