@@ -25,3 +25,6 @@ services:
     App\Service\CategoryService:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
+    App\Service\ProductService:
+        arguments:
+            $entityManager: '@doctrine.orm.entity_manager'

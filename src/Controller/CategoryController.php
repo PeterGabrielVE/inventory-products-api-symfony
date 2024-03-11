@@ -70,7 +70,7 @@ class CategoryController extends AbstractController
         $category = $entityManager->getRepository(Category::class)->find($id);
 
         if (!$category) {
-            return $this->json('No Category found for id' . $id, 404);
+            return $this->json('No Category found for id ' . $id, 404);
         }
 
         $name = $request->request->get('name');
@@ -94,8 +94,7 @@ class CategoryController extends AbstractController
         if (!$category) {
             return $this->json('No Category found for id ' . $id, 404);
         }
-   
-        // Llamar al servicio para eliminar la categoría
+
         $categoryService->deleteCategory($category);
    
         return $this->json('Deleted a Category successfully with id ' . $id);

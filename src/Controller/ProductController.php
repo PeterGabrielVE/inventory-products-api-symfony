@@ -9,73 +9,44 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use App\Entity\Product;
 use App\Entity\Category;
+use App\Service\ProductService;
 
 #[Route('/api', name: 'api_')]
 class ProductController extends AbstractController
 {
+
+    private $productService;
+
+    public function __construct(ProductService $productService)
+    {
+        $this->productService = $productService;
+    }
+
     #[Route('/products', name: 'product_index', methods:['get'] )]
     public function index(ManagerRegistry $doctrine): JsonResponse
     {
-        $products = $doctrine
-        ->getRepository(Product::class)
-        ->findAll();
+        $products = $this->productService->getAllProducts();
 
-        $data = [];
-
-        foreach ($products as $product) {
-        $data[] = [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
-            'quantity' => $product->getQuantity(),
-            'category_id' => $product->getCategoryId(),
-        ];
-        }
-
-        return $this->json($data);
+        return $this->json($products);
     }
 
     #[Route('/products', name: 'product_create', methods:['post'] )]
     public function create(ManagerRegistry $doctrine, Request $request): JsonResponse
     {
-        $entityManager = $doctrine->getManager();
-       
-        $product = new Product();
+        $category = new Category();
         $name = $request->request->get('name');
-        if ($name !== null) {
-            $product->setName($name);
-        }
-        
         $description = $request->request->get('description');
-        if ($description !== null) {
-            $product->setDescription($description);
-        }
-
         $price = $request->request->get('price');
-        if ($price !== null) {
-            $product->setPrice($price);
-        }
-
         $quantity = $request->request->get('quantity');
-        if ($quantity !== null) {
-            $product->setQuantity($quantity);
-        }
-
         $categoryId = $request->request->get('category_id');
-        $category = $entityManager->getRepository(Category::class)->find($categoryId);
-        if ($categoryId !== null && isset($category)) {
-            $product->setCategoryId($categoryId);
-        }
 
-        $entityManager->persist($product);
-        $entityManager->flush();
-   
+        $product = $this->productService->createProduct($name, $description, $price, $quantity, $categoryId);
+
         $data =  [
             'id' => $product->getId(),
             'name' => $product->getName(),
             'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
+            'price' => $product->getprice(),
             'quantity' => $product->getQuantity(),
             'category_id' => $product->getCategoryId(),
         ];
@@ -86,23 +57,13 @@ class ProductController extends AbstractController
     #[Route('/products/{id}', name: 'product_show', methods:['get'] )]
     public function show(ManagerRegistry $doctrine, int $id): JsonResponse
     {
-        $product = $doctrine->getRepository(Product::class)->find($id);
-   
+        $product = $this->productService->getProductById($id);
+
         if (!$product) {
-   
-            return $this->json('No Product found for id ' . $id, 404);
+            return $this->json('No category found for id ' . $id, 404);
         }
-   
-        $data =  [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
-            'quantity' => $product->getQuantity(),
-            'category_id' => $product->getCategoryId(),
-        ];
-           
-        return $this->json($data);
+
+        return $this->json($product);
     }
 
     #[Route('/products/{id}', name: 'product_update', methods:['put', 'patch'] )]
@@ -110,49 +71,30 @@ class ProductController extends AbstractController
     {
         $entityManager = $doctrine->getManager();
         $product = $entityManager->getRepository(Product::class)->find($id);
-   
+
         if (!$product) {
-            return $this->json('No Product found for id' . $id, 404);
+            return $this->json('No Product found for id ' . $id, 404);
         }
 
         $name = $request->request->get('name');
-        if ($name !== null) {
-            $product->setName($name);
-        }
-        
         $description = $request->request->get('description');
-        if ($description !== null) {
-            $product->setDescription($description);
-        }
-
         $price = $request->request->get('price');
-        if ($price !== null) {
-            $product->setPrice($price);
-        }
-
         $quantity = $request->request->get('quantity');
-        if ($quantity !== null) {
-            $product->setQuantity($quantity);
-        }
-
         $categoryId = $request->request->get('category_id');
-        $category = $entityManager->getRepository(Category::class)->find($categoryId);
-        if ($categoryId !== null && isset($category)) {
-            $product->setCategoryId($categoryId);
-        }
 
-        $entityManager->flush();
-   
-        $data =  [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
-            'quantity' => $product->getQuantity(),
-            'category_id' => $product->getCategoryId(),
-        ];
-           
-        return $this->json($data);
+        $updatedProduct =  $this->productService->updateProduct($product, $name, $description, $price, $quantity, $categoryId);
+
+        return $this->json([
+            'id' => $updatedProduct->getId(),
+            'name' => $updatedProduct->getName(),
+            'description' => $updatedProduct->getDescription(),
+            'price' => $updatedProduct->getPrice(),
+            'quantity' => $updatedProduct->getQuantity(),
+            'category_id' => $updatedProduct->getCategoryId(),
+        ]);
+
+      
+        
     }
  
     #[Route('/products/{id}', name: 'product_delete', methods:['delete'] )]
@@ -162,12 +104,11 @@ class ProductController extends AbstractController
         $product = $entityManager->getRepository(Product::class)->find($id);
    
         if (!$product) {
-            return $this->json('No Product found for id' . $id, 404);
+            return $this->json('No Product found for id ' . $id, 404);
         }
    
-        $entityManager->remove($product);
-        $entityManager->flush();
+        $this->productService->deleteProduct($product);
    
-        return $this->json('Deleted a Product successfully with id ' . $id);
+        return $this->json('Deleted a product successfully with id ' . $id);
     }
 }
